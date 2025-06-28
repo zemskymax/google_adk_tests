@@ -1,10 +1,18 @@
-from common.server import A2AServer
-from common.types import AgentCard, AgentCapabilities, AgentSkill
-from common.task_manager import AgentTaskManager
-from pizza_bot_agent import PizzaBotAgent
+from a2a.server.apps import A2AStarletteApplication
+from a2a.types import AgentCard, AgentCapabilities, AgentSkill
+from a2a.server.tasks import InMemoryTaskStore
+from a2a.server.request_handlers import DefaultRequestHandler
+from google.adk.agents.llm_agent import LlmAgent
+from google.adk.runners import Runner
+from google.adk.sessions import InMemorySessionService
+from google.adk.artifacts import InMemoryArtifactService
+from google.adk.memory.in_memory_memory_service import InMemoryMemoryService
 import os
 import logging
 from dotenv import load_dotenv
+from agent_executor import PizzaBotAgentExecutor
+import uvicorn
+from agent import pizza_bot as agent
 
 load_dotenv()
 
@@ -13,12 +21,25 @@ logger = logging.getLogger(__name__)
 
 host=os.environ.get("A2A_HOST", "localhost")
 port=int(os.environ.get("A2A_PORT", 10003))
-PUBLIC_URL=os.environ.get("PUBLIC_URL", "http://localhost:9991")
+public_url=os.environ.get("PUBLIC_URL", "http://localhost:10003")
 
-def main():
+class PizzaBotAgent:
     """Loads the config and runs the A2A server for the pizza bot agent."""
-    try:
-        capabilities = AgentCapabilities(streaming=True, tools=True, push_notifications=False)
+
+    SUPPORTED_CONTENT_TYPES = ["text", "text/plain"]
+
+    def __init__(self):
+        self._agent = self._build_agent()
+        self.runner = Runner(
+            app_name=self._agent.name,
+            agent=self._agent,
+            artifact_service=InMemoryArtifactService(),
+            session_service=InMemorySessionService(),
+            memory_service=InMemoryMemoryService(),
+        )
+
+        capabilities = AgentCapabilities(streaming=False, tools=True, push_notifications=False)
+
         order_pizza_skill = AgentSkill(
             id="order-pizza",
             name="Order a Pizza",
@@ -47,26 +68,43 @@ def main():
             tags=["status", "delivery", "pickup"],
             examples=["When will my pizza be ready?", "What's the ETA for my delivery?"],
         )
-        agent_card = AgentCard(
+        self.agent_card = AgentCard(
             name="Luigi's Pizza Bot",
             description="""An AI assistant that represents a worker at Luigi's Pizza House, ready to take your order.""",
-            url=f"{PUBLIC_URL}",
+            url=f"{public_url}",
             version="1.0.0",
             defaultInputModes=PizzaBotAgent.SUPPORTED_CONTENT_TYPES,
             defaultOutputModes=PizzaBotAgent.SUPPORTED_CONTENT_TYPES,
             capabilities=capabilities,
             skills=[order_pizza_skill, view_menu_skill, calculate_bill_skill, get_eta_skill],
         )
-        server = A2AServer(
-            agent_card=agent_card,
-            task_manager=AgentTaskManager(agent=PizzaBotAgent()),
-            host=host,
-            port=port,
+
+    def get_processing_message(self) -> str:
+        """Returns the processing message for the pizza bot agent."""
+        return "Processing the pizza order request..."
+
+    def _build_agent(self) -> LlmAgent:
+        """Builds the LLM agent for the night out planning agent."""
+        return agent.root_agent
+
+
+def main():
+    """Loads the config and runs the A2A server for the pizza bot agent."""
+    try:
+        pizza_agent = PizzaBotAgent()
+
+        request_handler = DefaultRequestHandler(
+            agent_executor=PizzaBotAgentExecutor(pizza_agent.runner, pizza_agent.agent_card),
+            task_store=InMemoryTaskStore(),
         )
-        logger.info(f"Attempting to start server with Agent Card: {agent_card.name}")
+        server = A2AStarletteApplication(
+            agent_card=pizza_agent.agent_card,
+            http_handler=request_handler,
+        )
+        logger.info(f"Attempting to start server with Agent Card: {pizza_agent.agent_card.name}")
         logger.info(f"Server object created: {server}")
 
-        server.start()
+        uvicorn.run(server.build(), host='0.0.0.0', port=port)
     except Exception as e:
         logger.error(f"An error occurred during server startup: {e}")
         exit(1)
