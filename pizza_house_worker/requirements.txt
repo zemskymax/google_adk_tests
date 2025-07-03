@@ -1,3 +1,5 @@
 google-adk
 a2a-server
 uvicorn
+python-dotenv
+pydantic

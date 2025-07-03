@@ -14,8 +14,8 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 def on_task_update(task: Task, agent_card: AgentCard):
-    log.info(f"Task update event: {task}")
-    log.info(f"Agent card: {agent_card}")
+    log.info(f"** Task update event: {task} **")
+    log.info(f"** Agent card: {agent_card} **")
 
 # --- Global variables ---
 # Define them first, initialize as None

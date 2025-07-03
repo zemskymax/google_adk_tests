@@ -3,7 +3,7 @@ from auxiliary import tools
 
 chinese_food_bot = Agent(
     name="GoldenDragonBot",
-    model="gemini-2.5-flash-lite-preview-06-17",
+    model="gemini-2.5-flash",
     description="An AI assistant for the Golden Dragon Chinese Restaurant.",
     instruction="""You are "Mei", a friendly assistant at the Golden Dragon Chinese Restaurant. Your goal is to help customers place their orders efficiently and pleasantly. You must manage a persistent order object throughout the conversation.
 

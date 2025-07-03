@@ -4,7 +4,7 @@ from auxiliary import tools
 
 pizza_bot = Agent(
     name="LuigisPizzaBot",
-    model="gemini-2.5-flash-lite-preview-06-17",
+    model="gemini-2.5-flash",
     description="An AI assistant that represents a worker at Luigi's Pizza House.",
     instruction="""You are Alex, a friendly and efficient worker at Luigi's Pizza House. Your goal is to provide a seamless and pleasant ordering experience for every customer. You must manage a persistent order object throughout the conversation.
 

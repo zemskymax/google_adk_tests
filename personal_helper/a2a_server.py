@@ -20,8 +20,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 host=os.environ.get("A2A_HOST", "localhost")
-port=int(os.environ.get("A2A_PORT", 10004))
-public_url=os.environ.get("PUBLIC_URL", "http://localhost:10004")
+port=int(os.environ.get("A2A_PORT", 10001))
+public_url=os.environ.get("PUBLIC_URL", "http://localhost:10001")
 
 
 class HelperBotAgent:
@@ -41,26 +41,10 @@ class HelperBotAgent:
 
         capabilities = AgentCapabilities(streaming=False, tools=True, push_notifications=False)
 
-        cuisine_discovery_skill = AgentSkill(
-            id="cuisine-discovery",
-            name="Discover Cuisines",
-            description="Finds and suggests available cuisine options for the user to choose from.",
-            tags=["food", "discovery", "cuisine"],
-            examples=["What cuisines do you have?", "What are my food options?"],
-        )
-
-        food_selection_skill = AgentSkill(
-            id="food-selection",
-            name="Select Food Items",
-            description="Shows available food items for a specific cuisine type.",
-            tags=["food", "ordering", "menu"],
-            examples=["What Italian dishes do you have?", "Show me Chinese food options"],
-        )
-
         food_ordering_skill = AgentSkill(
             id="food-ordering",
             name="Order Food",
-            description="Handles the complete food ordering process by connecting to the relevant restaurant.",
+            description="Handles the complete food ordering process by discovering and connecting to the relevant restaurant.",
             tags=["food", "ordering", "delegation"],
             examples=["I want to order a pizza", "I would like to order some pasta", "Let's get some food!", "I'll have food please"],
         )
@@ -73,7 +57,7 @@ class HelperBotAgent:
             defaultInputModes=HelperBotAgent.SUPPORTED_CONTENT_TYPES,
             defaultOutputModes=HelperBotAgent.SUPPORTED_CONTENT_TYPES,
             capabilities=capabilities,
-            skills=[cuisine_discovery_skill, food_selection_skill, food_ordering_skill],
+            skills=[food_ordering_skill],
         )
 
     def get_processing_message(self) -> str:

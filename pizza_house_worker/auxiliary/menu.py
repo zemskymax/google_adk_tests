@@ -1,3 +1,9 @@
+"""This module contains the menu data structure for the Pizza House application.
+
+It defines a comprehensive menu of pizzas, crusts, toppings, sides, drinks, and combo meals
+with their respective prices. This data is used throughout the application for order processing,
+price calculations, and menu display.
+"""
 
 MENU = {
     "pizzas": {
