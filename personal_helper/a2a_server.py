@@ -10,18 +10,25 @@ from google.adk.memory.in_memory_memory_service import InMemoryMemoryService
 import os
 import logging
 from dotenv import load_dotenv
-from agent_executor import HelperBotAgentExecutor
+from .agent_executor import HelperBotAgentExecutor
 import uvicorn
-from agent import helper_bot as agent
+from .agent import helper_bot as agent
 
 load_dotenv()
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("personal_helper.log"),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
 
 host=os.environ.get("A2A_HOST", "localhost")
-port=int(os.environ.get("A2A_PORT", 10001))
-public_url=os.environ.get("PUBLIC_URL", "http://localhost:10001")
+port=int(os.environ.get("A2A_PORT", 10000))
+public_url=os.environ.get("PUBLIC_URL", "http://localhost:10000")
 
 
 class HelperBotAgent:

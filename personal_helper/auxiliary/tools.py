@@ -13,6 +13,11 @@ from a2a.types import (
 )
 from google.adk.tools.tool_context import ToolContext
 import uuid
+from typing import List, Dict, Any
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 TaskCallbackArg = Task | TaskStatusUpdateEvent | TaskArtifactUpdateEvent
 TaskUpdateCallback = Callable[[TaskCallbackArg, AgentCard], Task]
@@ -59,14 +64,22 @@ def list_remote_agents(host_agent):
     for card in host_agent.cards.values():
         remote_agent_info.append({"name": card['name'], "description": card['description']})
 
-    print(f"List of all the remote agents: {remote_agent_info}")
+    logger.info(f"List of all the remote agents: {remote_agent_info}")
     return remote_agent_info
+
+def get_user_address():
+    """Returns the user's delivery address."""
+    return "123 Main St, Anytown, USA 12345"
+
+def get_user_phone_number():
+    """Returns the user's phone number."""
+    return "555-123-4567"
 
 async def send_message(host_agent, agent_name: str, task: str, tool_context: ToolContext):
     """Send a message to the remote agent."""
-    print("-- send_message --")
+    logger.info("-- send_message --")
     if agent_name not in host_agent.remote_agent_connections:
-        print(f"LLM tried to call '{agent_name}' but it was not found. Available agents: {list(host_agent.remote_agent_connections.keys())}")
+        logger.error(f"LLM tried to call '{agent_name}' but it was not found. Available agents: {list(host_agent.remote_agent_connections.keys())}")
         raise ValueError(f"Agent '{agent_name}' not found.")
 
     state = tool_context.state
@@ -87,3 +100,9 @@ async def send_message(host_agent, agent_name: str, task: str, tool_context: Too
     if not isinstance(send_response.root, SendMessageSuccessResponse) or not isinstance(send_response.root.result, Task):
         return None
     return send_response.root.result
+
+async def plan_order(host_agent, user_request: str, tool_context: ToolContext) -> List[Dict[str, Any]]:
+    """
+    Creates a plan for ordering food, potentially splitting the order across multiple restaurants.
+    """
+    return await host_agent.plan_order(user_request, tool_context)
