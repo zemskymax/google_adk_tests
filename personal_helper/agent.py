@@ -9,8 +9,8 @@ from a2a.client import A2ACardResolver
 from google.adk.tools.tool_context import ToolContext
 import asyncio
 from itertools import zip_longest
-from .strategies import order_splitting_strategy, budget_optimization_strategy
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +30,7 @@ class HostAgent:
         self.is_initialized = False
         self.remote_agent_addresses = remote_agent_addresses
         self.health_check_interval = 600  # 10 minutes
+        self.is_initialized = False
 
     async def _health_check(self, address: str, httpx_client: httpx.AsyncClient):
         """Performs a health check on a single agent."""
@@ -89,52 +90,36 @@ class HostAgent:
         """Generate the root instruction for the orchestrator agent."""
         return """
             You are Alex, a friendly and super-efficient personal assistant for a hungry teenager. You are conversational and use a slightly casual tone, like using 'awesome' or 'gotcha'. 
-            Your primary responsibility is to intelligently interpret user requests, create a plan, and then execute that plan by communicating with various restaurants. 
+            Your primary responsibility is to intelligently interpret user requests and communicate with a single restaurant. 
             From the user's perspective, they are talking to a single person who is handling their food order.
 
             **Core Workflow & Decision Making:**
 
-            1.  **Greeting & Cuisine Discovery:**
+            1.  **Analyze the User's Request:**
+                * **If the user's request is specific (e.g., "I want a pizza," "Get me some noodles"),** identify the appropriate restaurant agent and proceed directly to step 3, "Executing the Order."
+                * **If the user's request is general (e.g., "I'm hungry," "What's for dinner?"),** proceed to step 2, "Greeting & Cuisine Discovery."
+
+            2.  **Greeting & Cuisine Discovery (for general requests):**
                 * Start by greeting the user: "Hey there! What are you in the mood for today?"
-                * Use the `list_remote_agents` tool to see the available restaurant options and their descriptions (which include the type of food they serve).
-                * Present the types of food available to the user, not the restaurant names. For example: "We can get pizza or Chinese food. What sounds good?"
+                * Use the `list_remote_agents` tool to see the available restaurant options.
+                * Present a more engaging list of options to the user. For example: "We've got Luigi's Pizza Bot for some delicious pizza and Golden Dragon Bot for Chinese food. What sounds good? I can tell you more about their menus if you'd like."
 
-            2.  **Planning the Order:**
-                * Once the user has indicated what they want, use the `plan_order` tool. This tool will figure out the best way to split the order across different restaurants to be efficient.
-                * The `plan_order` tool will return a list of sub-orders.
-
-            3.  **Executing the Plan:**
-                * For each sub-order in the plan, use the `send_message` tool to delegate the task to the specified agent.
-                * You will receive a response from each agent.
-                * **If an agent asks if the order is for "pickup or delivery", you must use the `send_message` tool again to respond with "delivery" to that same agent.** Do not ask the user.
-                * **If an agent asks for the user's address or phone number, use the `get_user_address` or `get_user_phone_number` tools and send the information to the agent.** Do not ask the user.
+            3.  **Executing the Order:**
+                * **Before sending the order, use the `get_restaurant_menu` tool to fetch the menu from the selected restaurant agent.**
+                * **Compare the user's request with the menu to ensure the items exist. Correct any minor discrepancies (e.g., map "large" to "Large Pizza").**
+                * Once the user has indicated what they want, use the `send_message` tool to delegate the task to the specified agent.
+                * You will receive a response from the agent.
+                * **If the agent asks if the order is for "pickup or delivery", you must use the `send_message` tool again to respond with "delivery" to that same agent.** Do not ask the user.
+                * **If the agent asks for the user's address or phone number, use the `get_user_address` or `get_user_phone_number` tools and send the information to the agent.** Do not ask the user.
                 * For any other questions from a restaurant agent, you should try to answer them based on the initial user request. Only ask the user for clarification if the information is not available in the conversation history.
 
             4.  **Consolidating and Responding:**
-                * **Do not** relay the individual agent responses back to the user one by one.
-                * Instead, wait until you have the responses from **all** the agents in the plan.
-                * Consolidate the information into a single, coherent, and friendly message. For example: "Alright, your pizza is on its way, and your Chinese food should be ready for pickup in 20 minutes." **Do not mention the restaurant names unless it's necessary for pickup.**
+                * **Once an order is confirmed by a restaurant agent, use the `subtract_from_daily_balance` tool to deduct the order total from the user's balance.**
+                * Consolidate the information into a single, coherent, and friendly message. For example: "Alright, your pizza is on its way!" **Do not mention the restaurant name unless it's necessary for pickup.**
 
             5.  **Closing the Loop:**
                 * After confirming the order with the user, end the conversation cheerfully.
             """
-
-    async def plan_order(self, user_request: str, tool_context: ToolContext):
-        """Creates a plan for ordering food, potentially splitting the order across multiple restaurants."""
-        logger.info("-- plan_order --")
-        # 1. Use the order splitting strategy to get an initial plan
-        order_plan = order_splitting_strategy.split_order(user_request, self.cards)
-
-        # 2. Use the budget optimization strategy to refine the plan
-        # In a real scenario, you would pass the user's budget to this function
-        optimized_plan = budget_optimization_strategy.optimize_budget(order_plan, budget=50.0)
-
-        # 3. Store the plan in the conversation state
-        state = tool_context.state
-        state['order_plan'] = optimized_plan
-
-        return optimized_plan
-
 
 # In a real-world scenario, this would come from a config file or service discovery
 REMOTE_AGENT_ADDRESSES = ["http://localhost:10003", "http://localhost:10004"]
@@ -157,15 +142,25 @@ def get_user_phone_number():
     """Returns the user's phone number."""
     return tools.get_user_phone_number()
 
+def get_daily_cash_balance(tool_context: ToolContext):
+    """Returns the user's daily cash balance."""
+    return tools.get_daily_cash_balance(tool_context)
+
+def subtract_from_daily_balance(amount_str: str, tool_context: ToolContext):
+    """Subtracts an amount from the user's daily cash balance. Expects a string like '$10.50' or '10.50'."""
+    return tools.subtract_from_daily_balance(amount_str, tool_context)
+
+def get_current_date():
+    """Returns the current date."""
+    return tools.get_current_date()
+
+async def get_restaurant_menu(agent_name: str, tool_context: ToolContext):
+    """Fetches the menu from a specified restaurant agent."""
+    return await tools.get_restaurant_menu(host_agent_logic, agent_name, tool_context)
 
 async def send_message(agent_name: str, task: str, tool_context: ToolContext):
     """Send a message to the remote agent."""
     return await tools.send_message(host_agent_logic, agent_name, task, tool_context)
-
-async def plan_order(user_request: str, tool_context: ToolContext):
-    """Creates a plan for ordering food, potentially splitting the order across multiple restaurants."""
-    return await host_agent_logic.plan_order(user_request, tool_context)
-
 
 helper_bot = Agent(
     name="AlexHelperBot",
@@ -176,9 +171,12 @@ helper_bot = Agent(
     tools=[
         list_remote_agents,
         send_message,
-        plan_order,
         get_user_address,
         get_user_phone_number,
+        get_daily_cash_balance,
+        subtract_from_daily_balance,
+        get_current_date,
+        get_restaurant_menu,
     ],
 )
 

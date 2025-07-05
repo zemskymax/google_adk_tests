@@ -92,7 +92,7 @@ def main():
         logger.info(f"Attempting to start server with Agent Card: {helper_agent.agent_card.name}")
         logger.info(f"Server object created: {server}")
 
-        uvicorn.run(server.build(), host='0.0.0.0', port=port)
+        uvicorn.run(server.build(), host=host, port=port)
     except Exception as e:
         logger.error(f"An error occurred during server startup: {e}")
         exit(1)

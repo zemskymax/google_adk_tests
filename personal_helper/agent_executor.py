@@ -176,6 +176,15 @@ def convert_genai_part_to_a2a(part: types.Part) -> Part:
     """
     if part.text:
         return TextPart(text=part.text)
+    if part.file_data:
+        return Part(
+            root=FilePart(
+                file=FileWithUri(
+                    uri=part.file_data.file_uri,
+                    mime_type=part.file_data.mime_type,
+                )
+            )
+        )
     if part.inline_data:
         return Part(
             root=FilePart(
