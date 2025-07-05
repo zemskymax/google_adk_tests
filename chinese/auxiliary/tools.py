@@ -1,5 +1,5 @@
 import random
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from .menu import MENU
 from .order import Order, MainCourseItem
 
@@ -21,7 +21,7 @@ def add_item_to_order(order: Dict[str, Any], category: str, item: str) -> Dict[s
     order['order_status'] = "building"
     return {"updated_order": order, "confirmation_message": f"Added {item} to your order."}
 
-def add_main_course_to_order(order: Dict[str, Any], name: str, with_rice: str = None) -> Dict[str, Any]:
+def add_main_course_to_order(order: Dict[str, Any], name: str, with_rice: Optional[str] = None) -> Dict[str, Any]:
     """Adds a main course with an optional rice choice to the current order."""
     if name not in MENU["main_courses"]:
         return {"error": f"Sorry, we don't have '{name}' as a main course."}
