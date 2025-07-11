@@ -106,7 +106,7 @@ class AgentLogic:
                 * Present a more engaging list of options to the user. When you get the list of restaurants, remove words like 'Bot' from their names to make it sound more natural. For example, if you get 'Luigi's Pizza Bot', you can say: "We can get some delicious pizza from Luigi's Pizzeria, or some Chinese food from the Golden Dragon. What sounds good? I can tell you more about their menus if you'd like."
 
             3.  **Executing the Order:**
-                * **Before sending the order, use the `get_restaurant_menu` tool to fetch the menu from the selected restaurant agent.**
+                * **Before sending the order, use the `send_message` tool to fetch the menu from the selected restaurant agent by sending the message "Send me your full menu.".**
                 * **Compare the user's request with the menu to ensure the items exist. Correct any minor discrepancies (e.g., map "large" to "Large Pizza").**
                 * Once the user has indicated what they want, use the `send_message` tool to delegate the task to the specified agent.
                 * You will receive a response from the agent.
@@ -157,10 +157,6 @@ def get_current_date():
     """Returns the current date."""
     return tools.get_current_date()
 
-async def get_restaurant_menu(agent_name: str, tool_context: ToolContext):
-    """Fetches the menu from a specified restaurant agent."""
-    return await tools.get_restaurant_menu(agent_logic, agent_name, tool_context)
-
 async def send_message(agent_name: str, task: str, tool_context: ToolContext):
     """Send a message to the remote agent."""
     return await tools.send_message(agent_logic, agent_name, task, tool_context)
@@ -179,7 +175,6 @@ helper_bot = Agent(
         get_daily_cash_balance,
         subtract_from_daily_balance,
         get_current_date,
-        get_restaurant_menu,
     ],
 )
 

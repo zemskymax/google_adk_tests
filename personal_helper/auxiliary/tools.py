@@ -1,3 +1,6 @@
+import re
+import json
+import asyncio
 from collections.abc import Callable
 import httpx
 from a2a.client import A2AClient
@@ -17,8 +20,6 @@ import uuid
 from typing import List, Dict, Any
 import logging
 from datetime import datetime
-import re
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ def get_daily_cash_balance(tool_context: ToolContext) -> str:
 def subtract_from_daily_balance(amount_str: str, tool_context: ToolContext) -> str:
     """Subtracts an amount from the user's daily cash balance. Expects a string like '$10.50' or '10.50'."""
     logger.info(f"Attempting to subtract '{amount_str}' from balance.")
-    
+
     try:
         # Remove any non-numeric characters except for the decimal point
         amount_str = re.sub(r"[^0-9.]", "", amount_str)
@@ -40,11 +41,11 @@ def subtract_from_daily_balance(amount_str: str, tool_context: ToolContext) -> s
         return "Invalid amount format. Please provide a number."
 
     balance = tool_context.state.get('daily_balance', 25.00)
-    
+
     if amount > balance:
         logger.warning(f"Insufficient funds. Balance ${balance:.2f}, order ${amount:.2f}.")
         return f"Insufficient funds. Current balance is ${balance:.2f}, but order costs ${amount:.2f}."
-    
+
     new_balance = balance - amount
     tool_context.state['daily_balance'] = new_balance
     logger.info(f"Subtracted ${amount:.2f} from balance. New balance: ${new_balance:.2f}")
@@ -54,6 +55,9 @@ def get_current_date():
     """Returns the current date."""
     return datetime.now().strftime("%Y-%m-%d")
 
+def get_agent_name(agent_name: str) -> str:
+    """Returns the agent name."""
+    return re.sub(r'([a-z])([A-Z])', r'\1 \2', agent_name)
 
 TaskCallbackArg = Task | TaskStatusUpdateEvent | TaskArtifactUpdateEvent
 TaskUpdateCallback = Callable[[TaskCallbackArg, AgentCard], Task]
@@ -111,39 +115,6 @@ def get_user_phone_number():
     """Returns the user's phone number."""
     return "555-123-4567"
 
-async def get_restaurant_menu(host_agent, agent_name: str, tool_context: ToolContext) -> Dict[str, Any]:
-    """Fetches the menu from a specified restaurant agent."""
-    logger.info(f"-- get_restaurant_menu for {agent_name} --")
-    # Use the send_message tool to ask for the menu
-    task_response = await send_message(host_agent, agent_name, "Send me your full menu.", tool_context)
-
-    if not task_response or not hasattr(task_response, "id"):
-        logger.error(f"Error: Could not get a task ID from {task_response}.")
-        return {"error": f"Could not get a task ID from {agent_name}."}
-
-    client = host_agent.remote_agent_connections[agent_name].agent_client
-
-    # The send_message function returns a Task object. The agent's reply is in the parts.
-    if task_response and hasattr(task_response, "artifacts") and task_response.artifacts:
-        # We expect the restaurant agent to reply with the menu in a text part.
-        for part in task_response.artifacts[-1].parts:
-            if isinstance(part.root, TextPart):
-                # The pizza bot might return the raw JSON from its get_full_menu tool,
-                # or it might return a conversational text description of the menu.
-                # We can try to parse it as JSON first.
-                try:
-                    menu_data = json.loads(part.root.text)
-                    # The get_full_menu tool returns a dict with a "menu" key.
-                    if "menu" in menu_data:
-                        return menu_data
-                except json.JSONDecodeError:
-                    # If it's not JSON, it's conversational text.
-                    # The helper agent's LLM can work with this.
-                    return {"menu": part.root.text}
-                # Fallback in case the JSON doesn't have a "menu" key.
-                return {"menu": part.root.text}
-    return {"error": f"Could not retrieve the menu from {agent_name}."}
-
 async def send_message(host_agent, agent_name: str, task: str, tool_context: ToolContext):
     """Send a message to the remote agent."""
     logger.info("-- send_message --")
@@ -176,10 +147,12 @@ async def send_message(host_agent, agent_name: str, task: str, tool_context: Too
 
     try:
         async with httpx.AsyncClient() as logging_client:
-            sender_name = re.sub(r'([a-z])([A-Z])', r'\1 \2', host_agent.agent_name)
-            await logging_client.post("http://localhost:10111/log", json={"agent": sender_name, "message": task})
+            sender_name = get_agent_name(host_agent.agent.name)
+            await logging_client.post("http://localhost:10111/log", json={"sender": sender_name, "receiver": agent_name, "message": task})
     except httpx.RequestError as ex:
-        logger.error("Could not log message to monitor: {ex}")
+        logger.error(f"Could not log message to monitor: {ex}")
+
+    await asyncio.sleep(2)
 
     send_response: SendMessageResponse = await client.send_message(message_request=message_request)
 
@@ -200,12 +173,29 @@ async def send_message(host_agent, agent_name: str, task: str, tool_context: Too
                 # for artifact in send_response.root.result.artifacts:
                 for part in artifact.parts:
                     if hasattr(part, 'root') and hasattr(part.root, 'text'):
-                        await logging_client.post("http://localhost:10111/log", json={"agent": agent_name, "message": part.root.text})
+                        receiver_name = get_agent_name(host_agent.agent.name)
+                        await logging_client.post("http://localhost:10111/log", json={"sender": agent_name, "receiver": receiver_name, "message": part.root.text})
                     print(f"artifact number {artifact_number} part {part}")
                 artifact_number += 1
             print("**********************************")
     except httpx.RequestError as e:
-        logger.error("Could not log message to monitor: {e}")
+        logger.error(f"Could not log message to monitor: {e}")
+
+    await asyncio.sleep(2)
+
+    # If the task was to get the menu, parse it and return the content
+    if task == "Send me your full menu.":
+        if send_response.root.result and hasattr(send_response.root.result, 'artifacts') and send_response.root.result.artifacts:
+            for part in send_response.root.result.artifacts[-1].parts:
+                if isinstance(part.root, TextPart):
+                    try:
+                        menu_data = json.loads(part.root.text)
+                        if "menu" in menu_data:
+                            return menu_data
+                    except json.JSONDecodeError:
+                        return {"menu": part.root.text}
+                    return {"menu": part.root.text}
+        return {"error": f"Could not retrieve the menu from {agent_name}."}
 
     return send_response.root.result
 

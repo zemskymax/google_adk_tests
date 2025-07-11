@@ -21,11 +21,11 @@ def serve_index():
 def log_message():
     try:
         message = request.json
-        if not message or 'message' not in message or 'agent' not in message:
-            logger.error("Invalid message format")
-            return jsonify({"status": "error", "reason": "Invalid message format"}), 400
+        if not message or 'message' not in message or 'sender' not in message or 'receiver' not in message:
+            logger.error("Invalid message format. Required fields: sender, receiver, message")
+            return jsonify({"status": "error", "reason": "Invalid message format. Required fields: sender, receiver, message"}), 400
 
-        logger.info(f"Received message from {message.get('agent')}: {message.get('message')}")
+        logger.info(f"Received message from {message.get('sender')} to {message.get('receiver')}: {message.get('message')}")
         messages.append(message)
         return jsonify({"status": "success"}), 200
     except Exception as e:
