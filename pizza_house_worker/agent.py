@@ -57,5 +57,3 @@ pizza_bot = Agent(
         tools.get_order_eta,
     ],
 )
-
-root_agent = pizza_bot

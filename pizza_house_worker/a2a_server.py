@@ -12,6 +12,7 @@ import logging
 from dotenv import load_dotenv
 from agent_executor import PizzaBotAgentExecutor
 import uvicorn
+from starlette.middleware.cors import CORSMiddleware
 from agent import pizza_bot as agent
 
 load_dotenv()
@@ -101,10 +102,20 @@ def main():
             agent_card=pizza_agent.agent_card,
             http_handler=request_handler,
         )
+
+        app = CORSMiddleware(
+            server.build(),
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
         logger.info(f"Attempting to start server with Agent Card: {pizza_agent.agent_card.name}")
         logger.info(f"Server object created: {server}")
 
-        uvicorn.run(server.build(), host='0.0.0.0', port=port)
+        uvicorn.run(app, host='0.0.0.0', port=port)
+        # uvicorn.run(server.build(), host='0.0.0.0', port=port)
     except Exception as e:
         logger.error(f"An error occurred during server startup: {e}")
         exit(1)
