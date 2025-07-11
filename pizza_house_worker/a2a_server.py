@@ -111,11 +111,14 @@ def main():
             allow_headers=["*"],
         )
 
+        # print("Available Endpoints:")
+        # for route in app.app.routes:
+        #     print(f"  - Path: {route.path}, Methods: {list(route.methods)}, Name: {route.name}")
+
         logger.info(f"Attempting to start server with Agent Card: {pizza_agent.agent_card.name}")
         logger.info(f"Server object created: {server}")
 
         uvicorn.run(app, host='0.0.0.0', port=port)
-        # uvicorn.run(server.build(), host='0.0.0.0', port=port)
     except Exception as e:
         logger.error(f"An error occurred during server startup: {e}")
         exit(1)
