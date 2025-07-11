@@ -15,8 +15,8 @@ import re
 logger = logging.getLogger(__name__)
 
 
-class HostAgent:
-    """This is the agent responsible for choosing which remote agents to send
+class AgentLogic:
+    """This is the agent logic class responsible for choosing which remote agents to send
     tasks to and coordinate their work.
     """
 
@@ -25,6 +25,7 @@ class HostAgent:
         remote_agent_addresses: list[str],
     ):
         logger.info("HostAgent instance created in memory (uninitialized).")
+        self.agent_name = "AlexHelperBot"
         self.remote_agent_connections: dict[str, tools.RemoteAgentConnections] = {}
         self.cards: dict[str, dict] = {}
         self.is_initialized = False
@@ -91,7 +92,7 @@ class HostAgent:
         return """
             You are Alex, a friendly and super-efficient personal assistant for a hungry teenager. You are conversational and use a slightly casual tone, like using 'awesome' or 'gotcha'. 
             Your primary responsibility is to intelligently interpret user requests and communicate with a single restaurant. 
-            From the user's perspective, they are talking to a single person who is handling their food order.
+            From the user's perspective, they are talking to a single person who is handling their food order. You should never reveal that you are talking to a bot.
 
             **Core Workflow & Decision Making:**
 
@@ -102,7 +103,7 @@ class HostAgent:
             2.  **Greeting & Cuisine Discovery (for general requests):**
                 * Start by greeting the user: "Hey there! What are you in the mood for today?"
                 * Use the `list_remote_agents` tool to see the available restaurant options.
-                * Present a more engaging list of options to the user. For example: "We've got Luigi's Pizza Bot for some delicious pizza and Golden Dragon Bot for Chinese food. What sounds good? I can tell you more about their menus if you'd like."
+                * Present a more engaging list of options to the user. When you get the list of restaurants, remove words like 'Bot' from their names to make it sound more natural. For example, if you get 'Luigi's Pizza Bot', you can say: "We can get some delicious pizza from Luigi's Pizzeria, or some Chinese food from the Golden Dragon. What sounds good? I can tell you more about their menus if you'd like."
 
             3.  **Executing the Order:**
                 * **Before sending the order, use the `get_restaurant_menu` tool to fetch the menu from the selected restaurant agent.**
@@ -111,11 +112,13 @@ class HostAgent:
                 * You will receive a response from the agent.
                 * **If the agent asks if the order is for "pickup or delivery", you must use the `send_message` tool again to respond with "delivery" to that same agent.** Do not ask the user.
                 * **If the agent asks for the user's address or phone number, use the `get_user_address` or `get_user_phone_number` tools and send the information to the agent.** Do not ask the user.
+                * **To finalize the order, if the restaurant agent asks if there is anything else (e.g., "Anything else for you?"), and you have no more items to add from the user's request, you MUST respond with "That will be all" or a similar message to confirm the order is complete.** This is a critical step to get the final bill and confirmation.
                 * For any other questions from a restaurant agent, you should try to answer them based on the initial user request. Only ask the user for clarification if the information is not available in the conversation history.
 
             4.  **Consolidating and Responding:**
-                * **Once an order is confirmed by a restaurant agent, use the `subtract_from_daily_balance` tool to deduct the order total from the user's balance.**
-                * Consolidate the information into a single, coherent, and friendly message. For example: "Alright, your pizza is on its way!" **Do not mention the restaurant name unless it's necessary for pickup.**
+                * **Once an order is confirmed and you have the total cost from the restaurant agent, use the `subtract_from_daily_balance` tool to deduct the order total from the user's balance.**
+                * After confirming the order, if the user asked about the delivery time, you can now ask the restaurant for an ETA.
+                * Consolidate all the information (confirmation, ETA, etc.) into a single, coherent, and friendly message to the user. For example: "Alright, your pizza is on its way and should be there in about 30 minutes!" **Do not mention the restaurant name unless it's necessary for pickup.**
 
             5.  **Closing the Loop:**
                 * After confirming the order with the user, end the conversation cheerfully.
@@ -124,15 +127,15 @@ class HostAgent:
 # In a real-world scenario, this would come from a config file or service discovery
 REMOTE_AGENT_ADDRESSES = ["http://localhost:10003", "http://localhost:10004"]
 
-host_agent_logic = HostAgent(remote_agent_addresses=REMOTE_AGENT_ADDRESSES)
+agent_logic = AgentLogic(remote_agent_addresses=REMOTE_AGENT_ADDRESSES)
 
 # --- Tool Wrappers ---
 # These wrappers have simple signatures that the ADK can parse automatically.
-# They capture the host_agent_logic instance in a closure.
+# They capture the agent_logic instance in a closure.
 
 def list_remote_agents():
     """List the available remote agents you can use to delegate the task."""
-    return tools.list_remote_agents(host_agent_logic)
+    return tools.list_remote_agents(agent_logic)
 
 def get_user_address():
     """Returns the user's delivery address."""
@@ -156,18 +159,18 @@ def get_current_date():
 
 async def get_restaurant_menu(agent_name: str, tool_context: ToolContext):
     """Fetches the menu from a specified restaurant agent."""
-    return await tools.get_restaurant_menu(host_agent_logic, agent_name, tool_context)
+    return await tools.get_restaurant_menu(agent_logic, agent_name, tool_context)
 
 async def send_message(agent_name: str, task: str, tool_context: ToolContext):
     """Send a message to the remote agent."""
-    return await tools.send_message(host_agent_logic, agent_name, task, tool_context)
+    return await tools.send_message(agent_logic, agent_name, task, tool_context)
 
 helper_bot = Agent(
-    name="AlexHelperBot",
+    name=agent_logic.agent_name,
     model="gemini-2.5-flash",
     description="A personal food ordering AI assistant that orchestrates orders with various restaurants.",
-    instruction=host_agent_logic.root_instruction,
-    before_agent_callback=host_agent_logic.before_agent_callback,
+    instruction=agent_logic.root_instruction,
+    before_agent_callback=agent_logic.before_agent_callback,
     tools=[
         list_remote_agents,
         send_message,

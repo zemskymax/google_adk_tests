@@ -123,31 +123,10 @@ async def get_restaurant_menu(host_agent, agent_name: str, tool_context: ToolCon
 
     client = host_agent.remote_agent_connections[agent_name].agent_client
 
-    import asyncio
-    for _ in range(10):  # Poll for 10 seconds
-        await asyncio.sleep(1)
-        try:
-            # Assuming A2AClient has a get_task method. This is a reasonable
-            # assumption for a client library that deals with async tasks.
-            updated_task = await client.get_task(task_id=task_response.id)
-            if updated_task and hasattr(updated_task, "parts") and updated_task.parts:
-                task_response = updated_task
-                break
-        except AttributeError as ex:
-            logger.error("A2AClient does not have a 'get_task' method. Cannot poll for menu. Exception: {ex}")
-            return {
-                "error": f"Could not retrieve menu from {agent_name} due to internal client error. Exception: {ex}"
-            }
-        except Exception as e:
-            logger.error("Error while polling for menu from {agent_name}: {e}")
-            return {
-                "error": f"Could not retrieve menu from {agent_name} due to internal client error. Exception: {e}"
-            }
-
     # The send_message function returns a Task object. The agent's reply is in the parts.
-    if task_response and hasattr(task_response, "parts") and task_response.parts:
+    if task_response and hasattr(task_response, "artifacts") and task_response.artifacts:
         # We expect the restaurant agent to reply with the menu in a text part.
-        for part in task_response.parts:
+        for part in task_response.artifacts[-1].parts:
             if isinstance(part.root, TextPart):
                 # The pizza bot might return the raw JSON from its get_full_menu tool,
                 # or it might return a conversational text description of the menu.
@@ -197,7 +176,8 @@ async def send_message(host_agent, agent_name: str, task: str, tool_context: Too
 
     try:
         async with httpx.AsyncClient() as logging_client:
-            await logging_client.post("http://localhost:10111/log", json={"agent": "personal_helper", "message": task})
+            sender_name = re.sub(r'([a-z])([A-Z])', r'\1 \2', host_agent.agent_name)
+            await logging_client.post("http://localhost:10111/log", json={"agent": sender_name, "message": task})
     except httpx.RequestError as ex:
         logger.error("Could not log message to monitor: {ex}")
 
@@ -227,8 +207,7 @@ async def send_message(host_agent, agent_name: str, task: str, tool_context: Too
     except httpx.RequestError as e:
         logger.error("Could not log message to monitor: {e}")
 
-    return send_response.root.result.artifacts[-1]
-    # return send_response.root.result.artifacts
+    return send_response.root.result
 
 async def plan_order(host_agent, user_request: str, tool_context: ToolContext) -> List[Dict[str, Any]]:
     """
