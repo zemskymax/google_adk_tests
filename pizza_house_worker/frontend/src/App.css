@@ -7,19 +7,108 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: #282c34;
   color: white;
+  overflow: hidden;
 }
 
-.App {
+.app-layout {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background-color: #1e2128;
+  border-right: 1px solid #444;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  gap: 10px;
+}
+
+.new-chat-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.new-chat-btn:hover {
+  background-color: #0056b3;
+}
+
+.conversation-list {
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.conversation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-bottom: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conversation-item:hover {
+  background-color: #3a3f47;
+}
+
+.conversation-item.active {
+  background-color: #007bff;
+  color: white;
+}
+
+.convo-name {
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 5px;
+}
+
+.delete-convo-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: 0 5px;
+  line-height: 1;
+  visibility: hidden;
+  flex-shrink: 0;
+}
+
+.conversation-item:hover .delete-convo-btn {
+  visibility: visible;
+}
+
+.delete-convo-btn:hover {
+  color: #fff;
+}
+
+
+.main-content {
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
   height: 100vh;
-  text-align: center;
+  min-width: 0;
 }
 
 .App-header {
   background-color: #1e2128;
   padding: 10px 20px;
   border-bottom: 1px solid #444;
+  text-align: center;
 }
 
 .App-header h1 {
@@ -55,6 +144,7 @@ body {
   border-radius: 18px;
   text-align: left;
   line-height: 1.4;
+  word-wrap: break-word;
 }
 
 .message.user .bubble {
