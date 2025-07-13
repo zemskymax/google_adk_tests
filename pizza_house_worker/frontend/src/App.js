@@ -71,6 +71,22 @@ function App() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [conversations, activeConversationId]);
 
+    useEffect(() => {
+        if (isLoaded && activeConversationId) {
+            inputRef.current?.focus();
+        }
+    }, [activeConversationId, isLoaded]);
+
+    const activeConversation = conversations[activeConversationId];
+
+    useEffect(() => {
+        // When the active conversation is done typing, re-focus the input field.
+        if (activeConversation && !activeConversation.isTyping) {
+            inputRef.current?.focus();
+        }
+    }, [activeConversation?.isTyping]);
+
+
     const handleNewConversation = () => {
         const newId = `convo-${Date.now()}`;
         setConversations(prev => {
@@ -93,7 +109,6 @@ function App() {
             return { ...prev, [newId]: newConversation };
         });
         setActiveConversationId(newId);
-        inputRef.current?.focus();
     };
 
     const handleDeleteConversation = (convoIdToDelete) => {
@@ -136,7 +151,6 @@ function App() {
                 const newMessages = [...prev[convoId].messages, { sender: 'bot', text: 'Sorry, I received an unexpected response.' }];
                 return { ...prev, [convoId]: { ...prev[convoId], messages: newMessages } };
             });
-            inputRef.current?.focus();
             return;
         }
 
@@ -165,7 +179,6 @@ function App() {
                     return { ...prev, [convoId]: { ...prev[convoId], messages: newMessages } };
                 });
             }
-            inputRef.current?.focus();
         }
     }, [updateConversation, stopPolling]);
 
@@ -193,7 +206,6 @@ function App() {
                 const newMessages = [...prev[convoId].messages, { sender: 'bot', text: 'Sorry, I had trouble getting the response.' }];
                 return { ...prev, [convoId]: { ...prev[convoId], messages: newMessages } };
             });
-            inputRef.current?.focus();
         }
     }, [handleTaskResult, stopPolling, updateConversation]);
 
@@ -247,17 +259,15 @@ function App() {
                 const updatedMessages = [...newMessages, { sender: 'bot', text: `Error: ${error.message}` }];
                 return { ...prev, [activeConversationId]: { ...prev[activeConversationId], messages: updatedMessages } };
             });
-            inputRef.current?.focus();
         }
     };
 
     const handleKeyPress = (e) => {
         if (e.key === 'Enter') {
+            e.preventDefault();
             handleSend();
         }
     };
-
-    const activeConversation = conversations[activeConversationId];
 
     return (
         <div className="app-layout">

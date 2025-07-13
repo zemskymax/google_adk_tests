@@ -43,7 +43,12 @@ def get_full_menu() -> Dict[str, Any]:
     return {"menu": MENU}
 
 
-def add_pizza_to_order(order: Dict[str, Any], size: str, crust: str, toppings: List[str]) -> Dict[str, Any]:
+def add_pizza_to_order(
+    order: dict,
+    size: str,
+    crust: str,
+    toppings: list[str] = [],
+) -> dict[str, any]:
     """
     Adds a pizza with a specified size, crust, and toppings to the current order.
     Validates all items against the menu, handling partial and ambiguous matches.
