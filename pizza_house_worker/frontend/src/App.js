@@ -19,6 +19,13 @@ function App() {
             const savedConversations = localStorage.getItem('pizza-conversations');
             if (savedConversations) {
                 const parsedConvos = JSON.parse(savedConversations);
+                // Ensure all conversations have a contextId for backward compatibility
+                Object.values(parsedConvos).forEach(convo => {
+                    if (!convo.contextId) {
+                        convo.contextId = `context-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+                    }
+                });
+
                 if (Object.keys(parsedConvos).length > 0) {
                     setConversations(parsedConvos);
                     const lastActive = localStorage.getItem('pizza-last-active-convo');
@@ -80,6 +87,7 @@ function App() {
                 name: `Conversation ${newNumber}`,
                 messages: [],
                 taskId: `task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                contextId: `context-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
                 isTyping: false,
             };
             return { ...prev, [newId]: newConversation };
@@ -200,19 +208,16 @@ function App() {
         const messageToBeSent = input;
         setInput('');
 
-        const parts = newMessages.map(msg => ({
-            text: msg.text
-        }));
-
         const request = {
             jsonrpc: "2.0",
             method: "message/send",
             params: {
                 id: activeConversation.taskId,
                 message: {
-                    role: "user",
-                    parts: parts,
-                    messageId: `msg-${Date.now()}`
+                    role: 'user',
+                    parts: [{ text: messageToBeSent }],
+                    messageId: `msg-${Date.now()}`,
+                    contextId: activeConversation.contextId,
                 }
             },
             id: Date.now()

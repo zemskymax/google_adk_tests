@@ -115,7 +115,7 @@ def get_user_phone_number():
     """Returns the user's phone number."""
     return "555-123-4567"
 
-async def send_message(host_agent, agent_name: str, task: str, tool_context: ToolContext):
+async def send_message(host_agent, agent_name: str, message: str, tool_context: ToolContext):
     """Send a message to the remote agent."""
     logger.info("-- send_message --")
     if agent_name not in host_agent.remote_agent_connections:
@@ -140,15 +140,15 @@ async def send_message(host_agent, agent_name: str, task: str, tool_context: Too
     task_id = session_data["task_id"]
     message_id = state.get('input_message_metadata', {}).get('message_id', str(uuid.uuid4()))
 
-    payload = create_send_message_payload(task, task_id, context_id)
+    payload = create_send_message_payload(message, task_id, context_id)
     payload['message']['messageId'] = message_id
 
     message_request = SendMessageRequest(id=message_id, params=MessageSendParams.model_validate(payload))
 
     try:
         async with httpx.AsyncClient() as logging_client:
-            sender_name = get_agent_name(host_agent.agent.name)
-            await logging_client.post("http://localhost:10111/log", json={"sender": sender_name, "receiver": agent_name, "message": task})
+            sender_name = get_agent_name(host_agent.agent_name)
+            await logging_client.post("http://localhost:10111/log", json={"sender": sender_name, "receiver": agent_name, "message": message})
     except httpx.RequestError as ex:
         logger.error(f"Could not log message to monitor: {ex}")
 
@@ -173,7 +173,7 @@ async def send_message(host_agent, agent_name: str, task: str, tool_context: Too
                 # for artifact in send_response.root.result.artifacts:
                 for part in artifact.parts:
                     if hasattr(part, 'root') and hasattr(part.root, 'text'):
-                        receiver_name = get_agent_name(host_agent.agent.name)
+                        receiver_name = get_agent_name(host_agent.agent_name)
                         await logging_client.post("http://localhost:10111/log", json={"sender": agent_name, "receiver": receiver_name, "message": part.root.text})
                     print(f"artifact number {artifact_number} part {part}")
                 artifact_number += 1
@@ -184,7 +184,7 @@ async def send_message(host_agent, agent_name: str, task: str, tool_context: Too
     await asyncio.sleep(2)
 
     # If the task was to get the menu, parse it and return the content
-    if task == "Send me your full menu.":
+    if message == "Send me your full menu.":
         if send_response.root.result and hasattr(send_response.root.result, 'artifacts') and send_response.root.result.artifacts:
             for part in send_response.root.result.artifacts[-1].parts:
                 if isinstance(part.root, TextPart):

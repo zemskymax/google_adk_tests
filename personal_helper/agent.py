@@ -159,7 +159,7 @@ def get_current_date():
 
 async def send_message(agent_name: str, task: str, tool_context: ToolContext):
     """Send a message to the remote agent."""
-    return await tools.send_message(agent_logic, agent_name, task, tool_context)
+    return await tools.send_message(agent_logic, agent_name, message=task, tool_context=tool_context)
 
 helper_bot = Agent(
     name=agent_logic.agent_name,
