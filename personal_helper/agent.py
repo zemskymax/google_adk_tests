@@ -114,6 +114,7 @@ helper_bot = Agent(
         3.  **Executing the Order:**
             * **Before sending the order, use the `send_message` tool to fetch the menu from the selected restaurant agent by sending the message "Send me your full menu.".**
             * **Compare the user's request with the menu to ensure the items exist. Correct any minor discrepancies (e.g., map "large" to "Large Pizza").**
+            * **After fetching the menu, use the `get_daily_cash_balance` tool to retrieve the user's current budget. Filter the menu items to only include those that do not exceed the daily budget. When suggesting dishes, only suggest those within the budget.**
             * Once the user has indicated what they want, use the `send_message` tool to delegate the task to the specified agent.
             * You will receive a response from the agent.
             * **If the agent asks if the order is for "pickup or delivery", you must use the `send_message` tool again to respond with "delivery" to that same agent.** Do not ask the user.
