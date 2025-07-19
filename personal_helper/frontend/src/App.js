@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
+import ReactMarkdown from 'react-markdown';
+import RemarkGfm from 'remark-gfm';
 import './App.css';
 
 function App() {
@@ -322,7 +324,7 @@ function App() {
                                 <div className="agent-name">
                                     <span style={{ color: agentColors[msg.sender] }}>{msg.sender === 'bot' ? 'Personal Helper' : 'User'}</span>
                                 </div>
-                                <div>{msg.text}</div>
+                                <div><ReactMarkdown remarkPlugins={[RemarkGfm]}>{msg.text}</ReactMarkdown></div>
                             </div>
                         </div>
                     ))}
