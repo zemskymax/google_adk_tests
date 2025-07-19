@@ -12,6 +12,16 @@ function App() {
     const inputRef = useRef(null);
     const sidebarRef = useRef(null);
     const mainContentRef = useRef(null);
+    const [agentColors, setAgentColors] = useState({});
+    const colorPalette = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FED766', '#247BA0', '#F25F5C', '#70C1B3', '#FFE066', '#F45B69'];
+
+    useEffect(() => {
+        setAgentColors({
+            'user': colorPalette[0],
+            'bot': colorPalette[1]
+        });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     // Load conversations from localStorage on initial render
     useEffect(() => {
@@ -84,7 +94,7 @@ function App() {
         if (activeConversation && !activeConversation.isTyping) {
             inputRef.current?.focus();
         }
-    }, [activeConversation?.isTyping]);
+    }, [activeConversation]);
 
 
     const handleNewConversation = () => {
@@ -92,15 +102,15 @@ function App() {
         setConversations(prev => {
             const existingNumbers = Object.values(prev)
                 .map(c => c.name)
-                .filter(name => name.startsWith('Conversation '))
-                .map(name => parseInt(name.replace('Conversation ', ''), 10))
+                .filter(name => name.startsWith('Order #'))
+                .map(name => parseInt(name.replace('Order #', ''), 10))
                 .filter(num => !isNaN(num));
             
             const newNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
 
             const newConversation = {
                 id: newId,
-                name: `Conversation ${newNumber}`,
+                name: `Order #${newNumber}`,
                 messages: [],
                 taskId: `task-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
                 contextId: `context-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -272,7 +282,7 @@ function App() {
     return (
         <div className="app-layout">
             <div className="sidebar" ref={sidebarRef}>
-                <button className="new-chat-btn" onClick={handleNewConversation}>+ New Chat</button>
+                <button className="new-chat-btn" onClick={handleNewConversation}>+ New Order</button>
                 <div className="conversation-list">
                     {Object.values(conversations).map(convo => (
                         <div
@@ -296,18 +306,28 @@ function App() {
             </div>
             <div className="main-content" ref={mainContentRef}>
                 <header className="App-header">
-                    <h1>{activeConversation ? activeConversation.name : "Personal Helper"}</h1>
+                    <h1>{activeConversation ? activeConversation.name : "Food Ordering"}</h1>
                 </header>
                 <div className="chat-window">
                     {activeConversation?.messages.map((msg, index) => (
-                        <div key={index} className={`message ${msg.sender}`}>
-                            <div className="bubble">{msg.text}</div>
+                        <div key={index} className={`message-wrapper ${msg.sender}`}>
+                            <div className="message" style={{ borderLeftColor: agentColors[msg.sender] }}>
+                                <div className="agent-name">
+                                    <span style={{ color: agentColors[msg.sender] }}>{msg.sender === 'bot' ? 'Personal Helper' : 'User'}</span>
+                                </div>
+                                <div>{msg.text}</div>
+                            </div>
                         </div>
                     ))}
                     {activeConversation?.isTyping && (
-                        <div className="message bot">
-                            <div className="bubble typing-indicator">
-                                <span></span><span></span><span></span>
+                        <div className="message-wrapper bot">
+                            <div className="message" style={{ borderLeftColor: agentColors['bot'] }}>
+                                <div className="agent-name">
+                                    <span style={{ color: agentColors['bot'] }}>Personal Helper</span>
+                                </div>
+                                <div className="typing-indicator">
+                                    <span></span><span></span><span></span>
+                                </div>
                             </div>
                         </div>
                     )}

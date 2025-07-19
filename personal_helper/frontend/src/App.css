@@ -123,40 +123,36 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  text-align: left;
 }
 
-.message {
+.message-wrapper {
   display: flex;
   width: 100%;
 }
 
-.message.user {
-  justify-content: flex-end;
-}
-
-.message.bot {
+.message-wrapper.user {
   justify-content: flex-start;
 }
 
-.bubble {
+.message-wrapper.bot {
+  justify-content: flex-start;
+}
+
+.message {
+  background-color: #3a3f47;
+  padding: 15px;
+  border-radius: 8px;
+  border-left: 5px solid #ccc;
+  line-height: 1.5;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
   max-width: 70%;
-  padding: 10px 15px;
-  border-radius: 18px;
-  text-align: left;
-  line-height: 1.4;
   word-wrap: break-word;
 }
 
-.message.user .bubble {
-  background-color: #007bff;
-  color: white;
-  border-top-right-radius: 4px;
-}
-
-.message.bot .bubble {
-  background-color: #495057;
-  color: white;
-  border-top-left-radius: 4px;
+.agent-name {
+    font-weight: bold;
+    margin-bottom: 5px;
 }
 
 .input-area {
@@ -200,6 +196,13 @@ body {
 .input-area button:disabled {
   background-color: #555;
   cursor: not-allowed;
+}
+
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 16px;
 }
 
 .typing-indicator span {
