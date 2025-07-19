@@ -10,7 +10,6 @@ from a2a.types import (
     AgentCard,
     FilePart,
     FileWithBytes,
-    FileWithUri,
     Part,
     TaskState,
     TextPart,
@@ -67,9 +66,7 @@ class HelperBotAgentExecutor(AgentExecutor):
                     ]
                     logger.debug('Yielding final response: %s', parts)
                     await task_updater.add_artifact(parts)
-                    await task_updater.update_status(
-                        TaskState.completed, final=True
-                    )
+                    await task_updater.update_status(TaskState.completed, final=True)
                     break
                 if not event.get_function_calls():
                     logger.debug('Yielding update response')
@@ -79,9 +76,7 @@ class HelperBotAgentExecutor(AgentExecutor):
                             [
                                 convert_genai_part_to_a2a(part)
                                 for part in event.content.parts
-                                if (
-                                    part.text
-                                )
+                                if (part.text or part.file_data or part.inline_data)
                             ],
                         ),
                     )
@@ -98,6 +93,7 @@ class HelperBotAgentExecutor(AgentExecutor):
     ):
         # Run the agent until either complete or the task is suspended.
         updater = TaskUpdater(event_queue, context.task_id, context.context_id)
+
         # Immediately notify that the task is submitted.
         if not context.current_task:
             await updater.update_status(TaskState.submitted)
@@ -112,7 +108,6 @@ class HelperBotAgentExecutor(AgentExecutor):
             context.context_id,
             updater,
         )
-        logger.debug('[HelperBotAgentExecutor] execute exiting')
 
     async def cancel(self, context: RequestContext, event_queue: EventQueue):
         """Cancel the execution for the given context.
@@ -122,11 +117,11 @@ class HelperBotAgentExecutor(AgentExecutor):
         """
         session_id = context.context_id
         if session_id in self._active_sessions:
-            logger.info(f'Cancellation requested for active weather session: {session_id}')
-            # TODO: Implement proper cancellation when ADK supports it
+            logger.info('Cancellation requested for active weather session: %s', session_id)
+            #TODO. Implement proper cancellation when ADK supports it
             self._active_sessions.discard(session_id)
         else:
-            logger.debug(f'Cancellation requested for inactive weather session: {session_id}')
+            logger.debug('Cancellation requested for inactive weather session: %s', session_id)
 
         raise ServerError(error=UnsupportedOperationError())
 
@@ -176,15 +171,6 @@ def convert_genai_part_to_a2a(part: types.Part) -> Part:
     """
     if part.text:
         return TextPart(text=part.text)
-    if part.file_data:
-        return Part(
-            root=FilePart(
-                file=FileWithUri(
-                    uri=part.file_data.file_uri,
-                    mime_type=part.file_data.mime_type,
-                )
-            )
-        )
     if part.inline_data:
         return Part(
             root=FilePart(
