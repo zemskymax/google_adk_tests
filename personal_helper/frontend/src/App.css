@@ -24,6 +24,8 @@ body {
   flex-direction: column;
   padding: 10px;
   gap: 10px;
+  transition: width 0.2s ease-in-out, padding 0.2s ease-in-out;
+  position: relative;
 }
 
 .new-chat-btn {
@@ -35,10 +37,19 @@ body {
   font-size: 1em;
   cursor: pointer;
   transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .new-chat-btn:hover {
   background-color: #0056b3;
+}
+
+.new-chat-btn-text {
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .conversation-list {
@@ -230,4 +241,39 @@ body {
   30% {
     transform: translateY(-8px);
   }
+}
+
+/* Collapsible Sidebar Styles */
+.sidebar.collapsed {
+  width: 20px;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.sidebar.collapsed .new-chat-btn,
+.sidebar.collapsed .conversation-list {
+  display: none;
+}
+
+.collapse-btn {
+  position: absolute;
+  top: 50%;
+  right: -12px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  background-color: #282c34;
+  color: white;
+  border: 1px solid #444;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  z-index: 100;
+}
+
+.collapse-btn:hover {
+  background-color: #3a3f47;
 }

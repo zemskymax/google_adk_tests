@@ -7,6 +7,7 @@ function App() {
     const [activeConversationId, setActiveConversationId] = useState(null);
     const [input, setInput] = useState('');
     const [isLoaded, setIsLoaded] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const pollingTasksRef = useRef({});
     const messagesEndRef = useRef(null);
     const inputRef = useRef(null);
@@ -281,8 +282,11 @@ function App() {
 
     return (
         <div className="app-layout">
-            <div className="sidebar" ref={sidebarRef}>
-                <button className="new-chat-btn" onClick={handleNewConversation}>+ New Order</button>
+            <div className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`} ref={sidebarRef}>
+                <button className="new-chat-btn" onClick={handleNewConversation}>
+                    <span className="new-chat-btn-icon">+</span>
+                    <span className="new-chat-btn-text">New Order</span>
+                </button>
                 <div className="conversation-list">
                     {Object.values(conversations).map(convo => (
                         <div
@@ -291,8 +295,8 @@ function App() {
                             onClick={() => setActiveConversationId(convo.id)}
                         >
                             <span className="convo-name">{convo.name}</span>
-                            <button 
-                                className="delete-convo-btn" 
+                            <button
+                                className="delete-convo-btn"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     handleDeleteConversation(convo.id);
@@ -303,6 +307,9 @@ function App() {
                         </div>
                     ))}
                 </div>
+                <button className="collapse-btn" onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}>
+                    {isSidebarCollapsed ? '»' : '«'}
+                </button>
             </div>
             <div className="main-content" ref={mainContentRef}>
                 <header className="App-header">
