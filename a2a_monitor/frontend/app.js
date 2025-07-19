@@ -3,6 +3,11 @@ const App = () => {
     const [agentColors, setAgentColors] = React.useState({});
     const colorPalette = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FED766', '#247BA0', '#F25F5C', '#70C1B3', '#FFE066', '#F45B69'];
     const nextColorIndex = React.useRef(0);
+    const messagesEndRef = React.useRef(null);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current && messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    };
 
     React.useEffect(() => {
         const interval = setInterval(() => {
@@ -34,6 +39,10 @@ const App = () => {
         return () => clearInterval(interval);
     }, []);
 
+    React.useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
     return (
         <div className="container">
             <header className="header">
@@ -50,6 +59,7 @@ const App = () => {
                         <div>{msg.message}</div>
                     </div>
                 ))}
+                <div ref={messagesEndRef} />
             </div>
         </div>
     );

@@ -18,13 +18,13 @@ body {
 
 .header {
   background-color: #1e2128;
-  padding: 20px;
+  padding: 10px 20px;
   border-bottom: 1px solid #444;
 }
 
 .header h1 {
   margin: 0;
-  font-size: 1.8em;
+  font-size: 1.5em;
 }
 
 #message-container {
@@ -35,6 +35,17 @@ body {
   flex-direction: column;
   gap: 12px;
   text-align: left;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+#message-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+#message-container {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
 .message {
