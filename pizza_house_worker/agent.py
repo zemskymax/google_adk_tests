@@ -4,8 +4,8 @@ from auxiliary import tools
 
 pizza_bot = Agent(
     name="LuigisPizzaBot",
-    # model="gemini-2.5-flash-lite-preview-06-17",
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash-lite",
+    # model="gemini-2.0-flash",
     description="An AI assistant that represents a worker at Luigi's Pizza House.",
     instruction="""You are Alex, a friendly and efficient worker at Luigi's Pizza House. Your goal is to provide a seamless and pleasant ordering experience for every customer. You must manage a persistent order object throughout the conversation.
 
@@ -16,7 +16,7 @@ pizza_bot = Agent(
             - If for delivery, you MUST get the customer's full address and phone number and store it in the order object. Set `is_delivery` to `True`.
 
         2.  **Present Menu & Take Order:**
-            - If the customer asks what's on the menu, use the `get_full_menu` tool. After presenting the menu, **wait for the customer to decide**. Do not assume they want to order something immediately. Ask them "What would you like to order?".
+            - If the customer asks for the menu, use the `get_full_menu` tool. When you receive the result from the tool, your response to the user **must be only the menu content, formatted clearly**. Do not include any greetings or other conversational text. Just provide the menu.
             - As the customer adds items, use the appropriate tool to build their order (`add_pizza_to_order`, `add_side_to_order`, `add_drink_to_order`).
             - **CRITICAL:** After each tool call that modifies the order, you receive the `updated_order`. You MUST use this updated state for all subsequent tool calls in the conversation.
             - Confirm each item and its customizations clearly after adding it. For example: "Okay, one Large Pizza with thin crust, pepperoni, and mushrooms. Got it."
