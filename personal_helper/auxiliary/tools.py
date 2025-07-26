@@ -62,15 +62,16 @@ def get_agent_name(agent_name: str) -> str:
 TaskCallbackArg = Task | TaskStatusUpdateEvent | TaskArtifactUpdateEvent
 TaskUpdateCallback = Callable[[TaskCallbackArg, AgentCard], Task]
 
-class RemoteAgentConnections:
-    """A class to hold the connections to the remote agents."""
+class RemoteAgentConnection:
+    """A class to hold the connection to a remote agent."""
 
-    def __init__(self, agent_card: AgentCard, agent_url: str):
+    def __init__(self, agent_card: AgentCard, agent_url: str, is_connected: bool = False):
         self._httpx_client = httpx.AsyncClient(timeout=30)
         self.agent_client = A2AClient(
             self._httpx_client, agent_card, url=agent_url
         )
         self.card = agent_card
+        self.is_connected = is_connected
 
     def get_agent(self) -> AgentCard:
         return self.card
@@ -96,13 +97,20 @@ def create_send_message_payload(text: str, task_id: str | None = None, context_i
     return payload
 
 def list_remote_agents(host_agent):
-    """List the available remote agents you can use to delegate the task."""
-    if not host_agent.cards:
+    """List the available remote agents and their connection status."""
+    if not host_agent.remote_agent_connections:
         return []
 
     remote_agent_info = []
-    for card in host_agent.cards.values():
-        remote_agent_info.append({"name": card['name'], "description": card['description']})
+    for agent_name, connection in host_agent.remote_agent_connections.items():
+        status = "connected" if connection.is_connected else "disconnected"
+        remote_agent_info.append(
+            {
+                "name": agent_name,
+                "description": connection.card.description,
+                "status": status,
+            }
+        )
 
     logger.info(f"List of all the remote agents: {remote_agent_info}")
     return remote_agent_info
